@@ -148,7 +148,8 @@ namespace threetables
             if (!assetId.HasValue)
                 return;
 
-            var confirmResult = MessageBox.Show("Ви впевнені, що хочете видалити цей актив?", "Підтвердження видалення",
+            var confirmResult = MessageBox.Show("Ви впевнені, що хочете видалити цей актив?",
+                                                "Підтвердження видалення",
                                                 MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
 
             if (confirmResult == DialogResult.Yes)
@@ -160,23 +161,64 @@ namespace threetables
                     using (SqlConnection connection = new SqlConnection(connectionString))
                     {
                         connection.Open();
-                        string deleteQuery = "DELETE FROM Assets WHERE asset_id = @assetId";
+                        SqlTransaction transaction = connection.BeginTransaction();
 
-                        using (SqlCommand command = new SqlCommand(deleteQuery, connection))
+                        try
                         {
-                            command.Parameters.AddWithValue("@assetId", assetId.Value);
-                            command.ExecuteNonQuery();
+                            string deleteQuery = "DELETE FROM Assets WHERE asset_id = @assetId";
+                            using (SqlCommand command = new SqlCommand(deleteQuery, connection, transaction))
+                            {
+                                command.Parameters.AddWithValue("@assetId", assetId.Value);
+                                command.ExecuteNonQuery();
+                            }
+
+                            string createTempTable = @"
+                    CREATE TABLE Assets_New (
+                        asset_id INT IDENTITY(1,1) PRIMARY KEY,
+                        name NVARCHAR(255) NOT NULL,
+                        symbol NVARCHAR(50) NOT NULL,
+                        current_price DECIMAL(18,2) NOT NULL,
+                        type NVARCHAR(50) NOT NULL
+                    );";
+                            using (SqlCommand command = new SqlCommand(createTempTable, connection, transaction))
+                            {
+                                command.ExecuteNonQuery();
+                            }
+                            string copyData = @"
+                    INSERT INTO Assets_New (name, symbol, current_price, type)
+                    SELECT name, symbol, current_price, type FROM Assets ORDER BY asset_id;";
+                            using (SqlCommand command = new SqlCommand(copyData, connection, transaction))
+                            {
+                                command.ExecuteNonQuery();
+                            }
+                            string dropOldTable = "DROP TABLE Assets;";
+                            using (SqlCommand command = new SqlCommand(dropOldTable, connection, transaction))
+                            {
+                                command.ExecuteNonQuery();
+                            }
+                            string renameTable = "EXEC sp_rename 'Assets_New', 'Assets';";
+                            using (SqlCommand command = new SqlCommand(renameTable, connection, transaction))
+                            {
+                                command.ExecuteNonQuery();
+                            }
+
+                            transaction.Commit();
+                            MessageBox.Show("Актив успішно видалено.");
+                            this.Close();
+                        }
+                        catch (Exception ex)
+                        {
+                            transaction.Rollback();
+                            MessageBox.Show($"Помилка видалення активу: {ex.Message}");
                         }
                     }
-
-                    MessageBox.Show("Актив успішно видалено.");
-                    this.Close();
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Помилка видалення актива: {ex.Message}");
+                    MessageBox.Show($"Помилка підключення до бази даних: {ex.Message}");
                 }
             }
         }
+
     }
 }

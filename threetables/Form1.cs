@@ -30,10 +30,6 @@ namespace threetables
             Application.Exit();
         }
 
-        private void label5_Click(object sender, EventArgs e)
-        {
-            QueryEdit QueryEdit = new QueryEdit();
-            QueryEdit.Show();
-        }
+
     }
 }
