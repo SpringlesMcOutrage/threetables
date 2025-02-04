@@ -25,6 +25,7 @@ namespace threetables
             {
                 LoadUser();
             }
+            buttonDelete.Visible = userId.HasValue;
 
         }
         private void InitializeRoleComboBox()
@@ -141,6 +142,42 @@ namespace threetables
         private void label2_Click(object sender, EventArgs e)
         {
             this.Close();
+        }
+
+        private void buttonDelete_Click(object sender, EventArgs e)
+        {
+            if (!userId.HasValue)
+                return;
+
+            var confirmResult = MessageBox.Show("Ви впевнені, що хочете видалити цього користувача?", "Підтвердження видалення",
+                                                MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+
+            if (confirmResult == DialogResult.Yes)
+            {
+                string connectionString = "Server=localhost;Database=threetables;Integrated Security=True;TrustServerCertificate=True;";
+
+                try
+                {
+                    using (SqlConnection connection = new SqlConnection(connectionString))
+                    {
+                        connection.Open();
+                        string deleteQuery = "DELETE FROM Users WHERE user_id = @userId";
+
+                        using (SqlCommand command = new SqlCommand(deleteQuery, connection))
+                        {
+                            command.Parameters.AddWithValue("@userId", userId.Value);
+                            command.ExecuteNonQuery();
+                        }
+                    }
+
+                    MessageBox.Show("Користувача успішно видалено.");
+                    this.Close();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Помилка видалення користувача: {ex.Message}");
+                }
+            }
         }
     }
 }

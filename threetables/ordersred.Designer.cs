@@ -46,6 +46,7 @@
             label8 = new Label();
             label9 = new Label();
             comboBoxUser = new ComboBox();
+            buttonDelete = new Button();
             SuspendLayout();
             // 
             // label1
@@ -119,7 +120,7 @@
             // buttonSave
             // 
             buttonSave.Font = new Font("Segoe UI", 14F);
-            buttonSave.Location = new Point(298, 372);
+            buttonSave.Location = new Point(421, 376);
             buttonSave.Name = "buttonSave";
             buttonSave.Size = new Size(227, 37);
             buttonSave.TabIndex = 9;
@@ -216,11 +217,23 @@
             comboBoxUser.Size = new Size(312, 23);
             comboBoxUser.TabIndex = 18;
             // 
+            // buttonDelete
+            // 
+            buttonDelete.Font = new Font("Segoe UI", 14F);
+            buttonDelete.Location = new Point(113, 380);
+            buttonDelete.Name = "buttonDelete";
+            buttonDelete.Size = new Size(230, 33);
+            buttonDelete.TabIndex = 19;
+            buttonDelete.Text = "Видалити запис";
+            buttonDelete.UseVisualStyleBackColor = true;
+            buttonDelete.Click += buttonDelete_Click;
+            // 
             // ordersred
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(800, 450);
+            Controls.Add(buttonDelete);
             Controls.Add(comboBoxUser);
             Controls.Add(label9);
             Controls.Add(label8);
@@ -267,5 +280,6 @@
         private Label label8;
         private Label label9;
         private ComboBox comboBoxUser;
+        private Button buttonDelete;
     }
 }

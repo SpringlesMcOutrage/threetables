@@ -23,7 +23,7 @@ namespace threetables
 
             if (assetId.HasValue)
                 LoadAssetDetails(assetId.Value);
-
+            buttonDelete.Visible = assetId.HasValue;
         }
 
         private void label2_Click(object sender, EventArgs e)
@@ -140,6 +140,42 @@ namespace threetables
             catch (Exception ex)
             {
                 MessageBox.Show($"Помилка збереження активу: {ex.Message}");
+            }
+        }
+
+        private void buttonDelete_Click(object sender, EventArgs e)
+        {
+            if (!assetId.HasValue)
+                return;
+
+            var confirmResult = MessageBox.Show("Ви впевнені, що хочете видалити цей актив?", "Підтвердження видалення",
+                                                MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+
+            if (confirmResult == DialogResult.Yes)
+            {
+                string connectionString = "Server=localhost;Database=threetables;Integrated Security=True;TrustServerCertificate=True;";
+
+                try
+                {
+                    using (SqlConnection connection = new SqlConnection(connectionString))
+                    {
+                        connection.Open();
+                        string deleteQuery = "DELETE FROM Assets WHERE asset_id = @assetId";
+
+                        using (SqlCommand command = new SqlCommand(deleteQuery, connection))
+                        {
+                            command.Parameters.AddWithValue("@assetId", assetId.Value);
+                            command.ExecuteNonQuery();
+                        }
+                    }
+
+                    MessageBox.Show("Актив успішно видалено.");
+                    this.Close();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Помилка видалення актива: {ex.Message}");
+                }
             }
         }
     }

@@ -38,6 +38,7 @@
             label3 = new Label();
             label4 = new Label();
             label5 = new Label();
+            buttonDelete = new Button();
             SuspendLayout();
             // 
             // label2
@@ -84,7 +85,7 @@
             // buttonSave
             // 
             buttonSave.Font = new Font("Segoe UI", 14F);
-            buttonSave.Location = new Point(330, 331);
+            buttonSave.Location = new Point(471, 330);
             buttonSave.Name = "buttonSave";
             buttonSave.Size = new Size(148, 52);
             buttonSave.TabIndex = 5;
@@ -132,11 +133,23 @@
             label5.TabIndex = 9;
             label5.Text = "Пароль";
             // 
+            // buttonDelete
+            // 
+            buttonDelete.Font = new Font("Segoe UI", 14F);
+            buttonDelete.Location = new Point(150, 333);
+            buttonDelete.Name = "buttonDelete";
+            buttonDelete.Size = new Size(194, 49);
+            buttonDelete.TabIndex = 21;
+            buttonDelete.Text = "Видалити запис";
+            buttonDelete.UseVisualStyleBackColor = true;
+            buttonDelete.Click += buttonDelete_Click;
+            // 
             // usersred
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(800, 450);
+            Controls.Add(buttonDelete);
             Controls.Add(label5);
             Controls.Add(label4);
             Controls.Add(label3);
@@ -167,5 +180,6 @@
         private Label label3;
         private Label label4;
         private Label label5;
+        private Button buttonDelete;
     }
 }

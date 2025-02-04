@@ -22,6 +22,8 @@ namespace threetables
 
             if (orderId.HasValue)
                 LoadOrderDetails(orderId.Value);
+            buttonDelete.Visible = orderId.HasValue;
+
         }
 
         private void LoadAssets()
@@ -214,6 +216,42 @@ namespace threetables
         private void label1_Click(object sender, EventArgs e)
         {
             this.Close();
+        }
+
+        private void buttonDelete_Click(object sender, EventArgs e)
+        {
+            if (!orderId.HasValue)
+                return;
+
+            var confirmResult = MessageBox.Show("Ви впевнені, що хочете видалити цей ордер?", "Підтвердження видалення",
+                                                MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+
+            if (confirmResult == DialogResult.Yes)
+            {
+                string connectionString = "Server=localhost;Database=threetables;Integrated Security=True;TrustServerCertificate=True;";
+
+                try
+                {
+                    using (SqlConnection connection = new SqlConnection(connectionString))
+                    {
+                        connection.Open();
+                        string deleteQuery = "DELETE FROM Orders WHERE order_id = @OrderId";
+
+                        using (SqlCommand command = new SqlCommand(deleteQuery, connection))
+                        {
+                            command.Parameters.AddWithValue("@OrderId", orderId.Value);
+                            command.ExecuteNonQuery();
+                        }
+                    }
+
+                    MessageBox.Show("Ордер успішно видалено.");
+                    this.Close();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Помилка видалення ордера: {ex.Message}");
+                }
+            }
         }
     }
 }
