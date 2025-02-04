@@ -223,7 +223,8 @@ namespace threetables
             if (!orderId.HasValue)
                 return;
 
-            var confirmResult = MessageBox.Show("Ви впевнені, що хочете видалити цей ордер?", "Підтвердження видалення",
+            var confirmResult = MessageBox.Show("Ви впевнені, що хочете видалити цей ордер?",
+                                                "Підтвердження видалення",
                                                 MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
 
             if (confirmResult == DialogResult.Yes)
@@ -235,21 +236,69 @@ namespace threetables
                     using (SqlConnection connection = new SqlConnection(connectionString))
                     {
                         connection.Open();
-                        string deleteQuery = "DELETE FROM Orders WHERE order_id = @OrderId";
+                        SqlTransaction transaction = connection.BeginTransaction();
 
-                        using (SqlCommand command = new SqlCommand(deleteQuery, connection))
+                        try
                         {
-                            command.Parameters.AddWithValue("@OrderId", orderId.Value);
-                            command.ExecuteNonQuery();
+                            string deleteQuery = "DELETE FROM Orders WHERE order_id = @OrderId";
+                            using (SqlCommand command = new SqlCommand(deleteQuery, connection, transaction))
+                            {
+                                command.Parameters.AddWithValue("@OrderId", orderId.Value);
+                                command.ExecuteNonQuery();
+                            }
+
+                            string createTempTable = @"
+                        CREATE TABLE Orders_New (
+                            order_id INT IDENTITY(1,1) PRIMARY KEY,
+                            asset_id INT NOT NULL,
+                            created_at DATETIME NOT NULL,
+                            order_type NVARCHAR(50) NOT NULL,
+                            price REAL,
+                            quantity REAL NOT NULL,
+                            status NVARCHAR(50) NOT NULL,
+                            trade_type NVARCHAR(50) NOT NULL,
+                            user_id INT NOT NULL
+                        );";
+                            using (SqlCommand command = new SqlCommand(createTempTable, connection, transaction))
+                            {
+                                command.ExecuteNonQuery();
+                            }
+
+                            string copyData = @"
+                        INSERT INTO Orders_New (asset_id, created_at, order_type, price, quantity, status, trade_type, user_id)
+                        SELECT asset_id, created_at, order_type, price, quantity, status, trade_type, user_id 
+                        FROM Orders ORDER BY order_id;";
+                            using (SqlCommand command = new SqlCommand(copyData, connection, transaction))
+                            {
+                                command.ExecuteNonQuery();
+                            }
+
+                            string dropOldTable = "DROP TABLE Orders;";
+                            using (SqlCommand command = new SqlCommand(dropOldTable, connection, transaction))
+                            {
+                                command.ExecuteNonQuery();
+                            }
+
+                            string renameTable = "EXEC sp_rename 'Orders_New', 'Orders';";
+                            using (SqlCommand command = new SqlCommand(renameTable, connection, transaction))
+                            {
+                                command.ExecuteNonQuery();
+                            }
+
+                            transaction.Commit();
+                            MessageBox.Show("Ордер успішно видалено.");
+                            this.Close();
+                        }
+                        catch (Exception ex)
+                        {
+                            transaction.Rollback();
+                            MessageBox.Show($"Помилка видалення ордера: {ex.Message}");
                         }
                     }
-
-                    MessageBox.Show("Ордер успішно видалено.");
-                    this.Close();
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Помилка видалення ордера: {ex.Message}");
+                    MessageBox.Show($"Помилка підключення до бази даних: {ex.Message}");
                 }
             }
         }

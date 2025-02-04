@@ -149,7 +149,8 @@ namespace threetables
             if (!userId.HasValue)
                 return;
 
-            var confirmResult = MessageBox.Show("Ви впевнені, що хочете видалити цього користувача?", "Підтвердження видалення",
+            var confirmResult = MessageBox.Show("Ви впевнені, що хочете видалити цього користувача?",
+                                                "Підтвердження видалення",
                                                 MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
 
             if (confirmResult == DialogResult.Yes)
@@ -161,21 +162,66 @@ namespace threetables
                     using (SqlConnection connection = new SqlConnection(connectionString))
                     {
                         connection.Open();
-                        string deleteQuery = "DELETE FROM Users WHERE user_id = @userId";
+                        SqlTransaction transaction = connection.BeginTransaction();
 
-                        using (SqlCommand command = new SqlCommand(deleteQuery, connection))
+                        try
                         {
-                            command.Parameters.AddWithValue("@userId", userId.Value);
-                            command.ExecuteNonQuery();
+                            string deleteQuery = "DELETE FROM Users WHERE user_id = @userId";
+                            using (SqlCommand command = new SqlCommand(deleteQuery, connection, transaction))
+                            {
+                                command.Parameters.AddWithValue("@userId", userId.Value);
+                                command.ExecuteNonQuery();
+                            }
+
+                            string createTempTable = @"
+                        CREATE TABLE Users_New (
+                            user_id INT IDENTITY(1,1) PRIMARY KEY,
+                            email NVARCHAR(255) NOT NULL,
+                            name NVARCHAR(255) NOT NULL,
+                            password_hash NVARCHAR(255) NOT NULL,
+                            role NVARCHAR(50) NOT NULL,
+                            created_at DATETIME NOT NULL
+                        );";
+                            using (SqlCommand command = new SqlCommand(createTempTable, connection, transaction))
+                            {
+                                command.ExecuteNonQuery();
+                            }
+                            string copyData = @"
+                                INSERT INTO Users_New (email, name, password_hash, role, created_at)
+                                SELECT email, name, password_hash, role, created_at FROM Users ORDER BY user_id;";
+
+
+                            using (SqlCommand command = new SqlCommand(copyData, connection, transaction))
+                            {
+                                command.ExecuteNonQuery();
+                            }
+
+                            string dropOldTable = "DROP TABLE Users;";
+                            using (SqlCommand command = new SqlCommand(dropOldTable, connection, transaction))
+                            {
+                                command.ExecuteNonQuery();
+                            }
+
+                            string renameTable = "EXEC sp_rename 'Users_New', 'Users';";
+                            using (SqlCommand command = new SqlCommand(renameTable, connection, transaction))
+                            {
+                                command.ExecuteNonQuery();
+                            }
+
+                            transaction.Commit();
+                            MessageBox.Show("Користувача успішно видалено.");
+                            this.Close();
+                        }
+                        catch (Exception ex)
+                        {
+                            transaction.Rollback();
+                            MessageBox.Show($"Помилка видалення користувача: {ex.Message}");
                         }
                     }
-
-                    MessageBox.Show("Користувача успішно видалено.");
-                    this.Close();
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Помилка видалення користувача: {ex.Message}");
+                    MessageBox.Show($"Помилка підключення до бази даних: {ex.Message}");
                 }
             }
         }
